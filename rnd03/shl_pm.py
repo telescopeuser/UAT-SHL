@@ -1,24 +1,24 @@
 
 # coding: utf-8
 
-# ### SHL github project: uat_shl
+# ### SHL project
 # 
-# * training module: shl_tm
+# * training module: shl_tm (under construction)
 # 
-# * prediction module: shl_pm
+# * prediction module: shl_pm (completed)
 # 
-# * simulation module: shl_sm
+# * simulation module: shl_sm (completed, pending OCR)
 # 
-# * misc module: shl_mm
+# * misc module: shl_mm (under construction)
 # 
 # 
 # ### data feeds:
 # 
-# * historical bidding price, per second, time series
+# * historical bidding price, per second, time series (for machine learning, under construction)
 # 
-# * live bidding price, per second, time series
+# * live bidding price, per second, time series (for real time prediciton, completed. shl_pm)
 # 
-# ### parameter lookup table: python dictionary
+# ### parameter lookup table/dataframe
 # 
 # * parm_si (seasonality index per second)
 # 
@@ -104,7 +104,7 @@ def shl_initialize(in_ccyy_mm='2017-07'):
     print('shl_global_parm_beta              : %0.15f' % shl_global_parm_beta)  # used in forecasting
     print('shl_global_parm_gamma             : %0.15f' % shl_global_parm_gamma) # used in forecasting
     print('shl_global_parm_short_weight      : %f' % shl_global_parm_short_weight) # used in forecasting
-    print('shl_global_parm_short_weight_ratio: %f' % shl_global_parm_short_weight) # used in forecasting
+    print('shl_global_parm_short_weight_ratio: %f' % shl_global_parm_short_weight_ratio) # used in forecasting
     print('shl_global_parm_sec57_weight      : %f' % shl_global_parm_sec57_weight) # used in training a model
     print('shl_global_parm_month_weight      : %f' % shl_global_parm_month_weight) # used in training a model
     print('shl_global_parm_dynamic_increment : %d' % shl_global_parm_dynamic_increment)
@@ -168,7 +168,7 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
     # get Seasonality-Index, for current second + 1
     f_1_step_time = shl_intra_fetch_future_n_sec_time_as_str(in_current_time, 1)
     f_1_step_si = shl_intra_fetch_si(shl_global_parm_ccyy_mm, f_1_step_time, shl_data_parm_si)
-    print('*INFO* f_1_step_si         : %0.10f ' %  f_1_step_si) # Debug
+    print('*INFO* f_1_step_si          : %0.10f ' %  f_1_step_si) # Debug
     
     # calculate price increment: f_current_price4pm
     f_current_price4pm = in_current_price -  shl_global_parm_base_price
@@ -180,7 +180,6 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
     
 
     if in_current_time == '11:29:00':
-#         shl_data_pm_k_step_itr = pd.DataFrame() # initialize prediction dataframe at 11:29:00
         print('---- call prediction function shl_pm ---- %s' % in_current_time)
         f_1_step_pred_les_level = f_current_price4pmsi # special handling for 11:29:00
         f_1_step_pred_les_trend = 0 # special handling for 11:29:00
@@ -284,11 +283,7 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
                         ,'f_1_step_pred_price_rounded' : f_1_step_pred_price_rounded
                         ,'f_1_step_pred_set_price_rounded' : f_1_step_pred_set_price_rounded
                         }
-#     shl_data_pm_k_step_itr =  shl_data_pm_k_step_itr.append(shl_data_pm_k_step_itr_dict, ignore_index=True)
-#     shl_data_pm_k_step     =  shl_data_pm_k_step.append(shl_data_pm_k_step_itr_dict, ignore_index=True)
     return shl_data_pm_k_step_itr_dict
-
-    
 
 
 # In[10]:
@@ -304,7 +299,7 @@ def shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, 
     
     for k in range(1,in_k_seconds+1):
         print()
-        print('==>> Forecasting next %3d second/step... ' % k)
+        print('==>> Forecasting next %3d second/step... ' % in_k_seconds)
         if k == 1:
             print('     procesing current second/step k : ', k)
             input_price = in_current_price
@@ -320,7 +315,49 @@ def shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, 
         shl_data_pm_k_step     =  shl_data_pm_k_step.append(shl_data_pm_itr_dict, ignore_index=True)
         
     print('*INFO* RETURNED PREDICTION LIST :', shl_data_pm_k_step[shl_data_pm_k_step['f_1_step_time'] > in_current_time][return_value].tolist())
-    return shl_data_pm_k_step[shl_data_pm_k_step['f_1_step_time'] > in_current_time][return_value].tolist()
+    return shl_data_pm_k_step[shl_data_pm_k_step['f_1_step_time'] > in_current_time][return_value].apply(lambda price : int(price)).tolist()
+
+
+# In[26]:
+
+shl_pm_verison = '0.0.0.1'
+
+print('+-----------------------------------------------+')
+print('| Loaded SHL Prediction Module                  |')
+print('| Version %s                               |' % shl_pm_verison)
+print('+-----------------------------------------------+')
+
+shl_pm_user_guide = '''
++-----------------------------------------------+
+| SHL Prediction Module User Guide              |
++-----------------------------------------------+
+
+Key Function: 
+shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, return_value='f_1_step_pred_set_price_rounded')
+
+This function takes four inputs then returns prediciton values in a python list.
+
+Inputs:
+(1) in_current_time: current time/second of bidding price
+    string, i.e. '11:29:50'
+
+(2) in_current_price : current bidding price
+    number/integer/float, i.e. 89400
+
+(3) in_k_seconds : forecast price in the next k seconds
+    integer, default value = 1, i.e. 7
+
+(4) return_value : return result of predicted price, or predicted set price = predicted price + dynamic increment
+    string, i.e. 89600 predicted price     (return_value = 'f_1_step_pred_price_rounded')
+    string, i.e. 89800 predicted set price (return_value = 'f_1_step_pred_set_price_rounded')
+
+Output:
+(1) Returned restuls in python list
+    list of integer , i.e. [89800] (in_k_seconds = 1)
+    list of integers, i.e. [89800, 89900, 89900, 90000, 90100, 90100, 90200] (in_k_seconds = 7)
+'''
+
+print(shl_pm_user_guide)
 
 
 # ### The End
