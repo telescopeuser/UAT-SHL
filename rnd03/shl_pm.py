@@ -314,8 +314,10 @@ def shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, 
 
         shl_data_pm_k_step     =  shl_data_pm_k_step.append(shl_data_pm_itr_dict, ignore_index=True)
         
-    print('*INFO* RETURNED PREDICTION LIST :', shl_data_pm_k_step[shl_data_pm_k_step['f_1_step_time'] > in_current_time][return_value].tolist())
-    return shl_data_pm_k_step[shl_data_pm_k_step['f_1_step_time'] > in_current_time][return_value].apply(lambda price : int(price)).tolist()
+    shl_pm_return_list = shl_data_pm_k_step[shl_data_pm_k_step['f_1_step_time'] > in_current_time][return_value].apply(lambda price : int(price)).tolist()
+        
+    print('*INFO* RETURNED PREDICTION LIST : ', shl_pm_return_list)
+    return shl_pm_return_list
 
 
 # In[26]:
