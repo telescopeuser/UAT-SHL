@@ -103,10 +103,10 @@ def shl_initialize(in_ccyy_mm='2017-07'):
     print('shl_global_parm_alpha             : %0.15f' % shl_global_parm_alpha) # used in forecasting
     print('shl_global_parm_beta              : %0.15f' % shl_global_parm_beta)  # used in forecasting
     print('shl_global_parm_gamma             : %0.15f' % shl_global_parm_gamma) # used in forecasting
-    print('shl_global_parm_short_weight      : %f' % shl_global_parm_short_weight) # used in forecasting
-    print('shl_global_parm_short_weight_ratio: %f' % shl_global_parm_short_weight_ratio) # used in forecasting
-    print('shl_global_parm_sec57_weight      : %f' % shl_global_parm_sec57_weight) # used in training a model
-    print('shl_global_parm_month_weight      : %f' % shl_global_parm_month_weight) # used in training a model
+    print('shl_global_parm_short_weight      : %0.10f' % shl_global_parm_short_weight) # used in forecasting
+    print('shl_global_parm_short_weight_ratio: %0.10f' % shl_global_parm_short_weight_ratio) # used in forecasting
+    print('shl_global_parm_sec57_weight      : %0.10f' % shl_global_parm_sec57_weight) # used in training a model
+    print('shl_global_parm_month_weight      : %0.10f' % shl_global_parm_month_weight) # used in training a model
     print('shl_global_parm_dynamic_increment : %d' % shl_global_parm_dynamic_increment)
     print('-------------------------------------------------')
 
@@ -141,18 +141,14 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
     
     global shl_global_parm_base_price 
 
-
     print()
     print('+-----------------------------------------------+')
-    print('| shl_predict_price()                           |')
+    print('| shl_predict_price_1_step()                    |')
     print('+-----------------------------------------------+')
-    print()
     print('current_ccyy_mm   : %s' % shl_global_parm_ccyy_mm) # str, format: ccyy-mm
     print('in_current_time   : %s' % in_current_time) # str, format: hh:mm:ss
-    print('in_current_price  : %d' % in_current_price) # number, format: integer
-    print('-------------------------------------------------')
+    print('in_current_price  : %f' % in_current_price) # number, format: integer
 
-    
     # capture & calculate 11:29:00 bid price - 1 as base price
     if in_current_time == '11:29:00':
         shl_global_parm_base_price = in_current_price -1 
@@ -165,11 +161,6 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
     f_current_si = shl_intra_fetch_si(shl_global_parm_ccyy_mm, in_current_time, shl_data_parm_si)
     print('*INFO* f_current_si         : %0.10f ' %  f_current_si) # Debug
     
-    # get Seasonality-Index, for current second + 1
-    f_1_step_time = shl_intra_fetch_future_n_sec_time_as_str(in_current_time, 1)
-    f_1_step_si = shl_intra_fetch_si(shl_global_parm_ccyy_mm, f_1_step_time, shl_data_parm_si)
-    print('*INFO* f_1_step_si          : %0.10f ' %  f_1_step_si) # Debug
-    
     # calculate price increment: f_current_price4pm
     f_current_price4pm = in_current_price -  shl_global_parm_base_price
     print('*INFO* f_current_price4pm   : %d ' % f_current_price4pm) # Debug
@@ -178,9 +169,14 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
     f_current_price4pmsi = f_current_price4pm / f_current_si
     print('*INFO* f_current_price4pmsi : %0.10f ' % f_current_price4pmsi) # Debug
     
+    # get Seasonality-Index, for current second + 1
+    f_1_step_time = shl_intra_fetch_future_n_sec_time_as_str(in_current_time, 1)
+    print('*INFO* f_1_step_time        : %s' % f_1_step_time)
+    
+    f_1_step_si = shl_intra_fetch_si(shl_global_parm_ccyy_mm, f_1_step_time, shl_data_parm_si)
+    print('*INFO* f_1_step_si          : %0.10f ' %  f_1_step_si) # Debug
 
     if in_current_time == '11:29:00':
-        print('---- call prediction function shl_pm ---- %s' % in_current_time)
         f_1_step_pred_les_level = f_current_price4pmsi # special handling for 11:29:00
         f_1_step_pred_les_trend = 0 # special handling for 11:29:00
         f_1_step_pred_les = f_1_step_pred_les_level + f_1_step_pred_les_trend
@@ -191,18 +187,16 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
         f_1_step_pred_set_price_rounded = f_1_step_pred_price_rounded + shl_global_parm_dynamic_increment
         
     else:
-        print('---- call prediction function shl_pm ---- %s' % in_current_time)
-        
 #       function to get average forecast error between 46~50 seconds: mean(f_current_step_error)
         if in_current_time == '11:29:50':
             sec50_pred_price_inc = shl_data_pm_k_step[(shl_data_pm_k_step['ccyy-mm'] == shl_global_parm_ccyy_mm)                                                 & (shl_data_pm_k_step['f_1_step_time'] ==in_current_time)].iloc[0]['f_1_step_pred_price_inc']
             sec50_error    = sec50_pred_price_inc - f_current_price4pm
             sec46_49_error = (shl_data_pm_k_step['f_1_step_pred_price_inc'].shift(1)[46:50] - shl_data_pm_k_step['f_current_price4pm'][46:50]).sum()
-            print('*INFO* sec50_error    : %f' % sec50_error)
-            print('*INFO* sec46_49_error : %f' % sec46_49_error)
+            print('*INFO* sec50_error          : %0.10f' % sec50_error)
+            print('*INFO* sec46_49_error       : %0.10f' % sec46_49_error)
             
             shl_global_parm_short_weight_misc = (sec50_error + sec46_49_error) / 5
-            print('*INFO* shl_global_parm_short_weight_misc  : %f' % shl_global_parm_short_weight_misc)
+            print('*INFO* shl_global_parm_short_weight_misc  : %0.10f' % shl_global_parm_short_weight_misc)
             
 #       ----------------------------------------------------------------------------------------------------        
 #       if in_current_time == '11:29:50':
@@ -241,26 +235,32 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
 #       ----------------------------------------------------------------------------------------------------        
         
         previous_pred_les_level = shl_data_pm_k_step[(shl_data_pm_k_step['ccyy-mm'] == shl_global_parm_ccyy_mm)                                             & (shl_data_pm_k_step['f_1_step_time'] ==in_current_time)].iloc[0]['f_1_step_pred_les_level']
-        print('     previous_pred_les_level : %f' % previous_pred_les_level)
+        print('     previous_pred_les_level  : %0.10f' % previous_pred_les_level)
         
         previous_pred_les_trend = shl_data_pm_k_step[(shl_data_pm_k_step['ccyy-mm'] == shl_global_parm_ccyy_mm)                                             & (shl_data_pm_k_step['f_1_step_time'] ==in_current_time)].iloc[0]['f_1_step_pred_les_trend']
-        print('     previous_pred_les_trend : %f' % previous_pred_les_trend)
+        print('     previous_pred_les_trend  : %0.10f' % previous_pred_les_trend)
 
             
         f_1_step_pred_les_level = shl_global_parm_alpha * f_current_price4pmsi                                     + (1 - shl_global_parm_alpha) * (previous_pred_les_level + previous_pred_les_trend)
-        print('     f_1_step_pred_les_level  : %f' % f_1_step_pred_les_level)
+        print('     f_1_step_pred_les_level  : %0.10f' % f_1_step_pred_les_level)
         f_1_step_pred_les_trend = shl_global_parm_beta * (f_1_step_pred_les_level - previous_pred_les_level)                                     + (1 - shl_global_parm_beta) * previous_pred_les_trend
-        print('     f_1_step_pred_les_trend  : %f' % f_1_step_pred_les_trend)
+        print('     f_1_step_pred_les_trend  : %0.10f' % f_1_step_pred_les_trend)
         
         f_1_step_pred_les = f_1_step_pred_les_level + f_1_step_pred_les_trend
+        print('     f_1_step_pred_les        : %0.10f' % (f_1_step_pred_les))
         f_1_step_pred_adj_misc = shl_global_parm_short_weight_misc * shl_global_parm_short_weight * shl_global_parm_short_weight_ratio * shl_global_parm_gamma
-        print('     les + misc               : %f' % (f_1_step_pred_adj_misc+f_1_step_pred_les))
+        print('     f_1_step_pred_adj_misc   : %0.10f' % (f_1_step_pred_adj_misc))
+        
+        print('     pred_les + pred_adj_misc : %0.10f' % (f_1_step_pred_adj_misc+f_1_step_pred_les))
+        
         f_1_step_pred_price_inc = (f_1_step_pred_les + f_1_step_pred_adj_misc) * f_1_step_si
-        print('     f_1_step_pred_price_inc  : %f' % f_1_step_pred_price_inc)
-        print('     f_1_step_si              : %f' % f_1_step_si)
+        print('     f_1_step_pred_price_inc          : %0.10f' % f_1_step_pred_price_inc)
         f_1_step_pred_price = f_1_step_pred_price_inc + shl_global_parm_base_price
+        print('     f_1_step_pred_price              : %0.10f' % f_1_step_pred_price)
         f_1_step_pred_price_rounded = round(f_1_step_pred_price/100, 0) * 100
+        print('     f_1_step_pred_price_rounded      : %d' % f_1_step_pred_price_rounded)
         f_1_step_pred_set_price_rounded = f_1_step_pred_price_rounded + shl_global_parm_dynamic_increment
+        print('     f_1_step_pred_set_price_rounded  : %d' % f_1_step_pred_set_price_rounded)
    
         
     # write results to shl_pm dataframe
@@ -283,10 +283,11 @@ def shl_predict_price_1_step(in_current_time, in_current_price):
                         ,'f_1_step_pred_price_rounded' : f_1_step_pred_price_rounded
                         ,'f_1_step_pred_set_price_rounded' : f_1_step_pred_set_price_rounded
                         }
+    print('-------------------------------------------------')
     return shl_data_pm_k_step_itr_dict
 
 
-# In[10]:
+# In[4]:
 
 # return_value = {'f_1_step_pred_price_rounded', 'f_1_step_pred_set_price_rounded'}
 def shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, return_value='f_1_step_pred_set_price_rounded'):
@@ -298,16 +299,15 @@ def shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, 
     shl_data_pm_itr_dict = {}
     
     for k in range(1,in_k_seconds+1):
-        print()
-        print('==>> Forecasting next %3d second/step... ' % in_k_seconds)
+        print('==>> Forecasting %3d out of next %3d seconds/steps... ' % (k, in_k_seconds))
         if k == 1:
-            print('     procesing current second/step k : ', k)
+#             print('     procesing current second/step k : ', k)
             input_price = in_current_price
             input_time  = in_current_time
             shl_data_pm_itr_dict = shl_predict_price_1_step(input_time, input_price)
             shl_data_pm_1_step     =  shl_data_pm_1_step.append(shl_data_pm_itr_dict, ignore_index=True)
         else:
-            print('     procesing current second/step k : ', k)
+#             print('     procesing current second/step k : ', k)
             input_price = shl_data_pm_itr_dict['f_1_step_pred_price']
             input_time  = shl_data_pm_itr_dict['f_1_step_time']
             shl_data_pm_itr_dict = shl_predict_price_1_step(input_time, input_price)
@@ -316,11 +316,11 @@ def shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, 
         
     shl_pm_return_list = shl_data_pm_k_step[shl_data_pm_k_step['f_1_step_time'] > in_current_time][return_value].apply(lambda price : int(price)).tolist()
         
-    print('*INFO* RETURNED PREDICTION LIST : ', shl_pm_return_list)
+    print('==>> Prediction Restuls in Python List : ', shl_pm_return_list)
     return shl_pm_return_list
 
 
-# In[26]:
+# In[6]:
 
 shl_pm_verison = '0.0.0.1'
 
@@ -334,26 +334,41 @@ shl_pm_user_guide = '''
 | SHL Prediction Module User Guide              |
 +-----------------------------------------------+
 
-Key Function: 
-shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, return_value='f_1_step_pred_set_price_rounded')
++-----------------------------------------------+
+| Key Function I: 
+| shl_initialize(in_ccyy_mm='2017-07')
++-----------------------------------------------+
+
+This function takes one input. Run this funciton once, before calling shl_predict_price_k_step()
+
+Inputs:
+(1) in_ccyy_mm: the (current) year month for predicting bidding price
+    string, i.e. '2017-07'
+    
+Outputs: N.A.
+
++-----------------------------------------------+
+| Key Function II: 
+| shl_predict_price_k_step(in_current_time, in_current_price, in_k_seconds=1, return_value='f_1_step_pred_set_price_rounded')
++-----------------------------------------------+
 
 This function takes four inputs then returns prediciton values in a python list.
+
+Ensure this function is called 'once and only once' for EVERY second with price, starting from '11:29:00'! 
+This is to ensure prediction module could capture all actual prices for internal prediction calculation.
 
 Inputs:
 (1) in_current_time: current time/second of bidding price
     string, i.e. '11:29:50'
-
 (2) in_current_price : current bidding price
     number/integer/float, i.e. 89400
-
 (3) in_k_seconds : forecast price in the next k seconds
     integer, default value = 1, i.e. 7
-
 (4) return_value : return result of predicted price, or predicted set price = predicted price + dynamic increment
     string, i.e. 89600 predicted price     (return_value = 'f_1_step_pred_price_rounded')
     string, i.e. 89800 predicted set price (return_value = 'f_1_step_pred_set_price_rounded')
 
-Output:
+Outputs:
 (1) Returned restuls in python list
     list of integer , i.e. [89800] (in_k_seconds = 1)
     list of integers, i.e. [89800, 89900, 89900, 90000, 90100, 90100, 90200] (in_k_seconds = 7)
@@ -363,3 +378,8 @@ print(shl_pm_user_guide)
 
 
 # ### The End
+
+# In[ ]:
+
+
+
